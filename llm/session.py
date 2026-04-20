@@ -3,7 +3,8 @@ import json
 from typing import Optional, TypeVar
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pydantic import BaseModel
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 T = TypeVar('T', bound=BaseModel)
 
@@ -25,18 +26,17 @@ def generate(prompt: str, model: str = "gemini-2.0-flash-exp", temperature: floa
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable not set")
-    
-    genai.configure(api_key=api_key)
-    model_instance = genai.GenerativeModel(model)
-    
-    response = model_instance.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(
+
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt,
+        config=types.GenerateContentConfig(
             temperature=temperature,
             max_output_tokens=max_tokens,
-        )
+        ),
     )
-    
+
     return response.text
 
 
@@ -52,31 +52,28 @@ def batch_generate(
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable not set")
-    
-    genai.configure(api_key=api_key)
-    model_instance = genai.GenerativeModel(model)
-    
+
+    client = genai.Client(api_key=api_key)
+
     def _generate_one(prompt: str, index: int) -> tuple[int, Response]:
         try:
-            # Use native structured output if response_model is provided
             if response_model:
-                generation_config = genai.types.GenerationConfig(
+                config = types.GenerateContentConfig(
                     temperature=temperature,
                     max_output_tokens=max_tokens,
                     response_mime_type="application/json",
-                    # Pass the Pydantic model class directly so the SDK can
-                    # construct a compatible response schema.
                     response_schema=response_model,
                 )
             else:
-                generation_config = genai.types.GenerationConfig(
+                config = types.GenerateContentConfig(
                     temperature=temperature,
                     max_output_tokens=max_tokens,
                 )
-            
-            response = model_instance.generate_content(
-                prompt,
-                generation_config=generation_config
+
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=config,
             )
             content = response.text
             
