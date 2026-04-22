@@ -530,8 +530,8 @@ def prepare_sample(benchmark_entry: BenchmarkEntry,
         alt=benchmark_entry.alt,
         clnsig=benchmark_entry.clnsig,
         clnrevstat=benchmark_entry.clnrevstat,
-        genes=[benchmark_entry.genes],
-        diseases=[benchmark_entry.diseases]
+        genes=benchmark_entry.genes,
+        diseases=benchmark_entry.diseases
     )
     result["pathogenic_variant"] = pathogenic_variant.model_dump()
     
